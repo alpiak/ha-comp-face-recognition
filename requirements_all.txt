@@ -1,0 +1,5 @@
+# standard dependency set
+-r requirements.txt
+
+# dependency set for test
+-r requirements_test.txt
