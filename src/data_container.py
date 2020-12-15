@@ -24,7 +24,7 @@ class DataContainer(Lockable):
         self._check_lock(key)
 
         if not isinstance(entry, DataContainer.Entry):
-            raise TypeError("Entry must be of type Entry.")
+            raise TypeError("Entry must be of type DataContainer.Entry.")
 
     def update(self, entry_id, entry, key = None):
         """Update a data entry."""
@@ -86,7 +86,7 @@ class DataContainerWithMaxSize(DataContainer):
         super().add(entry, key)
 
         if not isinstance(entry, DataContainerWithMaxSize.Entry):
-            raise TypeError("Entry must be of type Entry.")
+            raise TypeError("Entry must be of type DataContainerWithMaxSize.Entry.")
 
         self._check_id(entry)
         entry.refresh()

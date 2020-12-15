@@ -4,6 +4,18 @@
 # Stop on errors
 set -e
 
+m=""
+
+while getopts m: arg
+do
+    case $arg in
+        m)
+            m="-m "$OPTARG ;;
+        ?)
+            exit 1 ;;
+    esac
+done
+
 cd "$(dirname "$0")/../tests"
 
-pylint src & pytest
+pylint src & pytest $m

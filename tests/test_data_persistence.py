@@ -2,6 +2,7 @@
 from pathlib import Path
 import asyncio
 import json
+from shutil import rmtree
 
 import pytest
 import singleton_decorator
@@ -27,13 +28,8 @@ def json_data_persistence(request, max_size, max_waiting_num):
 
     def fin():
         singleton_decorator.decorator._SingletonWrapper._instance = None
-
-        try:
-            (Path(json_data_persistence._data_path) / json_data_persistence._file_name).unlink()
-            Path(json_data_persistence._data_path).rmdir()
-        except FileNotFoundError:
-            pass
-
+        rmtree(json_data_persistence._data_path, ignore_errors = True)
+        
     request.addfinalizer(fin)
 
     return json_data_persistence
@@ -119,4 +115,4 @@ async def test_json_data_persistence_wrong_entry_type(json_data_persistence):
 
         assert False
     except TypeError as err:
-        assert err.args[0] == "Entry must be of type DataContainerWithMaxSize.Entry."
+        assert err.args[0] == "Entry must be of type DataContainer.Entry."

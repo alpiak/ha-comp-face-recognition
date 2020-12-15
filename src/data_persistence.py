@@ -5,14 +5,13 @@ import json
 
 from singleton_decorator import singleton
 
-from src.data_container import DataContainerWithMaxSize, DictDataContainerWithMaxSize
+from src.data_container import DictDataContainerWithMaxSize
 
 @singleton
 class LocalJSONFileDictDataPersistence(DictDataContainerWithMaxSize):
     """Data persistence by storing data as a dict in local JSON file."""
 
     def __init__(self, max_size = 8, max_waiting_num = 8, path = '.cache', file_name = 'data.json'):
-        """Initialize data persistence instance."""
         super().__init__(max_size, max_waiting_num)
 
         self._data_path = path
@@ -35,9 +34,6 @@ class LocalJSONFileDictDataPersistence(DictDataContainerWithMaxSize):
 
     def add(self, entry, key = None):
         """Add data entry."""
-
-        if not isinstance(entry, DataContainerWithMaxSize.Entry):
-            raise TypeError("Entry must be of type DataContainerWithMaxSize.Entry.")
 
         entry_id = super().add(entry, key)
 

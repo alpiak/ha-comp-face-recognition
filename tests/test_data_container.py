@@ -148,11 +148,11 @@ async def test_dict_data_container_with_max_size_wrong_entry_type(dict_data_cont
 
         assert False
     except TypeError as err:
-        assert err.args[0] == "Entry must be of type Entry."
+        assert err.args[0] == "Entry must be of type DataContainer.Entry."
 
     try:
         dict_data_container_with_max_size.add(DataContainer.Entry("entry"))
 
         assert False
     except TypeError as err:
-        assert err.args[0] == "Entry must be of type Entry."
+        assert err.args[0] == "Entry must be of type DataContainerWithMaxSize.Entry."
