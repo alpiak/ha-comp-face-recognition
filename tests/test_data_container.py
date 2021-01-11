@@ -44,7 +44,7 @@ def data_entry():
         def destroy(self):
             pass
 
-    return DataEntry("data_entry")
+    return DataEntry()
 
 @pytest.mark.dict_data_container
 @pytest.fixture
@@ -114,9 +114,9 @@ def test_dict_data_container_update_and_get_all(dict_data_container, length, ind
 
     for i in range(length):
         if i == index:
-            id = dict_data_container.add(DataContainerWithMaxSize.Entry("entry"))
+            id = dict_data_container.add(DataContainerWithMaxSize.Entry())
         else:
-            dict_data_container.add(DataContainerWithMaxSize.Entry("entry"))
+            dict_data_container.add(DataContainerWithMaxSize.Entry())
 
     assert len(dict_data_container.get_all()) == length
     assert dict_data_container.get_all()[index] != data_entry
@@ -125,6 +125,15 @@ def test_dict_data_container_update_and_get_all(dict_data_container, length, ind
 
     assert len(dict_data_container.get_all()) == length
     assert dict_data_container.get_all()[index] == data_entry
+
+@pytest.mark.dict_data_container_with_max_size
+def test_dict_data_container_with_max_size_no_max_size():
+    """When initiate the instatance with max size as None, the max size should be None."""
+
+    dict_data_container_with_max_size = DictDataContainerWithMaxSize(None)
+
+    assert dict_data_container_with_max_size._max_size == None
+
 
 @pytest.mark.dict_data_container_with_max_size
 def test_dict_data_container_with_max_size_remove(dict_data_container_with_max_size, data_entry):
@@ -140,19 +149,26 @@ def test_dict_data_container_with_max_size_remove(dict_data_container_with_max_s
 
 @pytest.mark.asyncio
 @pytest.mark.dict_data_container_with_max_size
-async def test_dict_data_container_with_max_size_wrong_entry_type(dict_data_container_with_max_size):
-    """When adding entry of wrong type, exception should be raised."""
+async def test_dict_data_container_with_max_size_any_entry_type(dict_data_container_with_max_size):
+    """When adding entry of any type, no exception should be raised."""
 
     try:
         dict_data_container_with_max_size.add(object())
 
+        assert True
+    except TypeError:
         assert False
-    except TypeError as err:
-        assert err.args[0] == "Entry must be of type DataContainer.Entry."
 
     try:
-        dict_data_container_with_max_size.add(DataContainer.Entry("entry"))
+        dict_data_container_with_max_size.add('test')
 
+        assert True
+    except TypeError:
         assert False
-    except TypeError as err:
-        assert err.args[0] == "Entry must be of type DataContainerWithMaxSize.Entry."
+
+    try:
+        dict_data_container_with_max_size.add(DataContainer.Entry())
+
+        assert True
+    except TypeError:
+        assert False

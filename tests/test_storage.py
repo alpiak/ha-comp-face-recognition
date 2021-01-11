@@ -75,11 +75,10 @@ async def test_fs_storage(fs_storage, path, file_name, image):
     """When reading file from the storage, the file should be the same to the origin one."""
     await fs_storage.put(path, file_name, BytesIO(image))
 
-    file = fs_storage.get(path, file_name)
+    async with fs_storage.get(path, file_name) as f:
+        f.seek(0)
 
-    file.seek(0)
-
-    assert (await file.read()) == image
+        assert (await f.read()) == image
 
 @pytest.mark.asyncio
 @pytest.mark.fs_storage
@@ -88,22 +87,20 @@ async def test_fs_storage_force_put_await(fs_storage, path, file_name, image, im
 
     await fs_storage.put(path, file_name, BytesIO(image))
 
-    file = fs_storage.get(path, file_name)
+    async with fs_storage.get(path, file_name) as file:
+        file.seek(0)
 
-    file.seek(0)
-
-    assert (await file.read()) == image
+        assert (await file.read()) == image
 
     await fs_storage.put(path, file_name, BytesIO(image_1), True)
 
-    file = fs_storage.get(path, file_name)
+    async with fs_storage.get(path, file_name) as file:
+        file.seek(0)
 
-    file.seek(0)
+        file_content = await file.read()
 
-    file_content = await file.read()
-
-    assert file_content != image
-    assert file_content == image_1
+        assert file_content != image
+        assert file_content == image_1
 
 @pytest.mark.asyncio
 @pytest.mark.fs_storage
@@ -146,13 +143,11 @@ async def test_fs_storage_delete(fs_storage, path, file_name, asset_file_name):
 
     await fs_storage.put(path, file_name, BytesIO(image))
 
-    file = fs_storage.get(path, file_name)
+    async with fs_storage.get(path, file_name) as file:
+        await file.seek(0)
 
-    file.seek(0)
-
-    assert (await file.read()) == image
-
-    assert await fs_storage.delete(path, file_name) == True
+        assert (await file.read()) == image
+        assert await fs_storage.delete(path, file_name) == True
 
     try:
         file = fs_storage.get(path, file_name)

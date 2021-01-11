@@ -1,7 +1,10 @@
 """Class of objects that can be converted to JSON."""
 
-class JSONCompatible():
+class JSONable():
     """Objects that can be converted to JSON."""
+
+    def __init__(self, entry_type: str):
+        self._type = entry_type
 
     @classmethod
     def from_json(cls, json_object):

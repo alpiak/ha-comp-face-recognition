@@ -18,4 +18,4 @@ done
 
 cd "$(dirname "$0")/../tests"
 
-pylint src & pytest $m
+pylint src & mypy ../src & pytest $m

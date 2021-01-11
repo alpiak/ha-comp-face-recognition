@@ -7,8 +7,9 @@ from shutil import rmtree
 import pytest
 import singleton_decorator
 
-from src.data_container import DataContainerWithMaxSize
+from src.data_container import DataContainer, DataContainerWithMaxSize
 from src.data_persistence import LocalJSONFileDictDataPersistence
+from src.person import Person
 
 @pytest.mark.local_json_file_dict_data_persistence
 @pytest.fixture(scope="module")
@@ -27,7 +28,6 @@ def json_data_persistence(request, max_size, max_waiting_num):
     json_data_persistence = LocalJSONFileDictDataPersistence(max_size, max_waiting_num)
 
     def fin():
-        singleton_decorator.decorator._SingletonWrapper._instance = None
         rmtree(json_data_persistence._data_path, ignore_errors = True)
         
     request.addfinalizer(fin)
@@ -36,29 +36,13 @@ def json_data_persistence(request, max_size, max_waiting_num):
 
 @pytest.mark.local_json_file_dict_data_persistence
 @pytest.fixture
-def DataPersistenceItem():
-    class DataPersistenceItem(DataContainerWithMaxSize.Entry):
-        @classmethod
-        def from_json(cls):
-            return cls()
-
-        def __init__(self):
-            super().__init__("data_persistence_item")
-
-        def to_json(self):
-            return self.entry_id
-
-    return DataPersistenceItem
+def data_entry_a():
+    return Person()
 
 @pytest.mark.local_json_file_dict_data_persistence
 @pytest.fixture
-def data_entry_a(DataPersistenceItem):
-    return DataPersistenceItem()
-
-@pytest.mark.local_json_file_dict_data_persistence
-@pytest.fixture
-def data_entry_b(DataPersistenceItem):
-    return DataPersistenceItem()
+def data_entry_b():
+    return Person()
 
 @pytest.mark.local_json_file_dict_data_persistence
 def test_init(json_data_persistence, max_size, max_waiting_num):
@@ -107,12 +91,26 @@ async def test_json_data_persistence(json_data_persistence, data_entry_a, data_e
 
 @pytest.mark.asyncio
 @pytest.mark.local_json_file_dict_data_persistence
-async def test_json_data_persistence_wrong_entry_type(json_data_persistence):
-    """When adding entry of wrong type, exception should be raised."""
+async def test_json_data_persistence_any_entry_type(json_data_persistence):
+    """When adding entry of any type, no exception should be raised."""
 
     try:
         json_data_persistence.add(object())
 
+        assert True
+    except TypeError:
         assert False
-    except TypeError as err:
-        assert err.args[0] == "Entry must be of type DataContainer.Entry."
+
+    try:
+        json_data_persistence.add('test')
+
+        assert True
+    except TypeError:
+        assert False
+
+    try:
+        json_data_persistence.add(DataContainer.Entry())
+
+        assert True
+    except TypeError:
+        assert False

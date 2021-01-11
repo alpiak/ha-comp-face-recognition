@@ -8,9 +8,6 @@ class Lockable:
     _wrong_key_error = RuntimeError("Wrong key to update data persistence instance.")
 
     def __init__(self, max_waiting_num = 8):
-        """Initialize lockable instance."""
-        super().__init__()
-
         self._max_waiting_num = max_waiting_num
         self._key = object()
         self._locked = False
