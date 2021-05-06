@@ -21,30 +21,31 @@ def asset_path():
 
 @pytest.mark.dlib_recognizer
 @pytest.fixture(scope="module")
-def get_image_file(asset_path):
-    def get_image_file(file_name):
-        image_path = Path(asset_path) / file_name\
+def get_image_bytes(asset_path):
+    def get_image_bytes(file_name):
+        image_path = Path(asset_path) / file_name
 
         assert os.path.exists(str(image_path))
 
-        return BytesIO(open(str(image_path), 'rb').read())
+        with open(str(image_path), 'rb') as file:
+            return file.read()
 
-    return get_image_file
-
-@pytest.mark.dlib_recognizer
-@pytest.fixture(scope="module")
-def image_file_1_of_person_a(get_image_file):
-    return get_image_file("subject01.centerlight")
+    return get_image_bytes
 
 @pytest.mark.dlib_recognizer
-@pytest.fixture(scope="module")
-def image_file_2_of_person_a(get_image_file):
-    return get_image_file("subject01.normal")
+@pytest.fixture(scope="function")
+def image_file_1_of_person_a(get_image_bytes):
+    return BytesIO(get_image_bytes("subject01.centerlight"))
 
 @pytest.mark.dlib_recognizer
-@pytest.fixture(scope="module")
-def image_file_1_of_person_b(get_image_file):
-    return get_image_file("subject02.centerlight")
+@pytest.fixture(scope="function")
+def image_file_2_of_person_a(get_image_bytes):
+    return BytesIO(get_image_bytes("subject01.normal"))
+
+@pytest.mark.dlib_recognizer
+@pytest.fixture(scope="function")
+def image_file_1_of_person_b(get_image_bytes):
+    return BytesIO(get_image_bytes("subject02.centerlight"))
 
 @pytest.mark.dlib_recognizer
 @pytest.fixture
@@ -99,10 +100,12 @@ async def test_dlib_regconizer_first_time(dlib_regconizer, image_file_1_of_perso
     assert len(result.findings) == 1
 
     await asyncio.sleep(0)
-    image = await fs_storage.get(dlib_regconizer._storage_path, result.findings[0].target.face.image.file_name).read()
 
-    assert image is not None
-    assert len(image) > 0
+    async with fs_storage.get(dlib_regconizer._storage_path, result.findings[0].target.face.image.file_name) as file:
+        image = await file.read()
+
+        assert image is not None
+        assert len(image) > 0
 
 @pytest.mark.dlib_recognizer
 @pytest.mark.asyncio
@@ -130,12 +133,11 @@ async def test_dlib_regconizer_one_person_two_images(dlib_regconizer, image_file
     """When processing two images of one person, one same person should be regconized."""
 
     await dlib_regconizer.recognize(image_file_1_of_person_a)
-    await asyncio.sleep(1)
+    await asyncio.sleep(0)
     result = await dlib_regconizer.recognize(image_file_2_of_person_a)
 
     assert len(result.findings) == 1
     assert len(list(filter(lambda entry: isinstance(entry, Person), json_data_persistence.get_all()))) == 1
-    # TODO: assert error, the second image is not stored
     assert len(result.findings[0].target.face.images) == 2
 
     face_image = result.findings[0].target.face.images[0]
@@ -144,18 +146,21 @@ async def test_dlib_regconizer_one_person_two_images(dlib_regconizer, image_file
     assert face_image.similarity < face_image_1.similarity
 
     await asyncio.sleep(0)
-    file = fs_storage.get(dlib_regconizer._storage_path, face_image.file_name)
-    file.seek(0)
-    image = await file.read()
-    file_1 = fs_storage.get(dlib_regconizer._storage_path, face_image_1.file_name)
-    file_1.seek(0)
-    image_1 = await file_1.read()
+    async with fs_storage.get(dlib_regconizer._storage_path, face_image.file_name) as file:
+        await file.seek(0)
 
-    assert image is not None
-    assert image_1 is not None
-    assert len(image) > 0
-    assert len(image_1) > 0
-    assert image != image_1
+        image = await file.read()
+
+        async with fs_storage.get(dlib_regconizer._storage_path, face_image_1.file_name) as file_1:
+            file_1.seek(0)
+
+            image_1 = await file_1.read()
+
+            assert image is not None
+            assert image_1 is not None
+            assert len(image) > 0
+            assert len(image_1) > 0
+            assert image != image_1
 
 @pytest.mark.dlib_recognizer
 @pytest.mark.asyncio
@@ -176,19 +181,18 @@ async def test_dlib_regconizer_two_persons(dlib_regconizer, image_file_1_of_pers
     face_image_1 = saved_persons[1].face.images[0]
 
     await asyncio.sleep(0)
-    image_file = fs_storage.get(dlib_regconizer._storage_path, face_image.file_name)
-    image_file.seek(0)
+    async with fs_storage.get(dlib_regconizer._storage_path, face_image.file_name) as image_file:
+        await image_file.seek(0)
+        image = await image_file.read()
 
-    image = await image_file.read()
+        async with fs_storage.get(dlib_regconizer._storage_path, face_image_1.file_name) as image_file_1:
+            await image_file_1.seek(0)
+            image_1 = await image_file_1.read()
 
-    image_file_1 = fs_storage.get(dlib_regconizer._storage_path, face_image_1.file_name)
-    image_file_1.seek(0)
-    image_1 = await image_file_1.read()
-
-    assert image is not None
-    assert image_1 is not None
-    assert len(image) > 0
-    assert len(image_1) > 0
-    assert image != image_1
+            assert image is not None
+            assert image_1 is not None
+            assert len(image) > 0
+            assert len(image_1) > 0
+            assert image != image_1
 
     

@@ -1,8 +1,9 @@
-from types import MethodType
+from types import MethodType, BuiltinFunctionType, BuiltinMethodType
 from inspect import ismethod, isfunction, iscoroutinefunction, isgeneratorfunction
 from io import BufferedReader, DEFAULT_BUFFER_SIZE
 from asyncio import get_event_loop
 
+import nest_asyncio
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
 
 from src.jsonable import JSONable
@@ -16,16 +17,19 @@ def isjsonable(obj: any):
 
     return False
 
-def wrap_obj(obj: any, sync=True):
+def wrap_obj(obj: any, sync=True, base_class=None):
+    """Wrap an object in order to add custom attribute to it later."""
+
     def wrap_fn(fn):
         """Wrap a sync function to an async function, or an async fucntion to a sync function."""
         
-        if not ismethod(fn) and not isfunction(fn):
+        if not ismethod(fn) and not isfunction(fn) and not isinstance(fn, BuiltinFunctionType) and not isinstance(fn, BuiltinMethodType):
             raise TypeError('Parameter must be a function.')
 
         if iscoroutinefunction(fn) or isgeneratorfunction(fn):
             def sync_wrapper(*args, **kwargs):
                 loop = get_event_loop()
+                nest_asyncio.apply(loop)
                 task = loop.create_task(fn(*args, **kwargs))
                 loop.run_until_complete(task)
                 
@@ -47,7 +51,7 @@ def wrap_obj(obj: any, sync=True):
 
         raise AttributeError
 
-    class WrapperBase(object):
+    class WrapperBase(base_class if base_class != None else object):
         def __init__(self, obj):
             self.__wrapped__ = obj
 
@@ -59,7 +63,7 @@ def wrap_obj(obj: any, sync=True):
             except AttributeError:
                 attr = get_attr_recursively(self, attr_name)
 
-            if (ismethod(attr) or isfunction(attr)):
+            if ismethod(attr) or isfunction(attr) or isinstance(attr, BuiltinFunctionType) or isinstance(attr, BuiltinMethodType):
                 if not sync ^ (iscoroutinefunction(attr) or isgeneratorfunction(attr)):
                     return wrap_fn(attr)
 
@@ -142,3 +146,54 @@ async def copy(from_file: BufferedReader or AsyncBufferedIOBase, to_file: Buffer
             chunk, read_position = await read(from_file, DEFAULT_BUFFER_SIZE, read_position)
     except IOError as err:
         raise err
+
+DAY = 1000 * 60 * 60 * 24
+HOUR = 1000 * 60 * 60
+MINUTE = 1000 * 60
+SECOND = 1000
+
+def milliseconds_to_string(milliseconds, lang = 'en-US'):
+    days = milliseconds // DAY
+    remains = milliseconds % DAY
+    hours = remains // HOUR
+    remains = remains % HOUR
+    minutes = remains // MINUTE
+    remains = remains % MINUTE
+    seconds = remains // SECOND
+
+    if lang == 'zh-CN' or lang == 'zh':
+        def get_component_zh(args):
+            [value, unit] = args
+
+            if value == 0:
+                return None
+
+            if value == 1:
+                return str(value) + unit
+            
+            return str(value) + unit
+
+        return ''.join(filter(lambda component: component is not None, map(get_component_zh, [
+            [days, '天'],
+            [hours, '小时'],
+            [minutes, '分钟'],
+            [seconds, '秒'],
+        ]))) or '瞬时'
+        
+    def get_component_en(args):
+        [value, unit_singular, unit_plural] = args
+
+        if value == 0:
+            return None
+
+        if value == 1:
+            return str(value) + ' ' + unit_singular
+        
+        return str(value) + ' ' + unit_plural
+
+    return ' '.join(filter(lambda component: component is not None, map(get_component_en, [
+        [days, 'day', 'days'],
+        [hours, 'hour', 'hours'],
+        [minutes, 'minute', 'minutes'],
+        [seconds, 'second', 'seconds'],
+    ]))) or '1 seconds'

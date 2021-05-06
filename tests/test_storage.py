@@ -110,23 +110,21 @@ async def test_fs_storage_force_put_no_await(fs_storage, path, file_name, image,
     asyncio.create_task(fs_storage.put(path, file_name, BytesIO(image)))
     await asyncio.sleep(0)
 
-    file = fs_storage.get(path, file_name)
+    async with fs_storage.get(path, file_name) as file:
+        file.seek(0)
 
-    file.seek(0)
+        assert (await file.read()) == image
 
-    assert (await file.read()) == image
+        await fs_storage.put(path, file_name, BytesIO(image_1), True)
+        await asyncio.sleep(0)
 
-    await fs_storage.put(path, file_name, BytesIO(image_1), True)
-    await asyncio.sleep(0)
+    async with fs_storage.get(path, file_name) as file:
+        file.seek(0)
 
-    file = fs_storage.get(path, file_name)
+        file_content = await file.read()
 
-    file.seek(0)
-
-    file_content = await file.read()
-
-    assert file_content != image
-    assert file_content == image_1
+        assert file_content != image
+        assert file_content == image_1
 
 @pytest.mark.asyncio
 @pytest.mark.fs_storage

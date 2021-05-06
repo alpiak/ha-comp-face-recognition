@@ -8,3 +8,4 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "local_json_file_dict_data_persistence")
     config.addinivalue_line("markers", "fs_storage")
     config.addinivalue_line("markers", "dlib_recognizer")
+    config.addinivalue_line("markers", "utils")

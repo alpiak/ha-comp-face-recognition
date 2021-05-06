@@ -181,10 +181,10 @@ class DlibRecognizer(Recognizer):
             self._data_persistence.add_or_update(matched_or_unkown_person)
 
             # pylint: disable = no-member
-            face_image_np = cv2.imencode(".jpg", image_np[top: bottom, left: right])[1].tobytes()
-            image_name = matched_or_unkown_person.entry_id + "_" + str(hash(face_image_np))
+            face_image_bytes = cv2.imencode(".jpg", image_np[top: bottom, left: right])[1].tobytes()
+            image_name = matched_or_unkown_person.entry_id + "_" + str(hash(face_image_bytes))
 
-            awaitable = self._storage.put(self._storage_path, image_name, BytesIO(face_image_np), True)
+            awaitable = self._storage.put(self._storage_path, image_name, BytesIO(face_image_bytes), True)
             asyncio.create_task(awaitable)
 
             image = Person.Face.Image(image_name)
@@ -223,7 +223,7 @@ class DlibRecognizer(Recognizer):
                         face_image_np = face_recognition.load_image_file(face_image_file)
 
                         return _get_face_encodings(face_image_np)
-                    except (RuntimeError, UnidentifiedImageError):
+                    except (RuntimeError, UnidentifiedImageError, ValueError):
                         return []
             except RuntimeError:
                 return []
